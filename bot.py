@@ -1,112 +1,95 @@
 import os
 import logging
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes, ConversationHandler
-from dotenv import load_dotenv
+from telegram.ext import (
+    ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes, ConversationHandler
+)
 
-# Load environment variables
-load_dotenv()
-
-BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-BASE_URL = os.getenv("BASE_URL", "https://your-render-app-url.onrender.com")
-
-# Setup logging
+# Set up logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 
-# Define states for the conversation handler
+# Define states for conversation handler
 ASK_MODE, COLLECT_BATCH = range(2)
 
-# To store batch files temporarily
-user_files = {}
+# Store batch links in memory (in a dictionary keyed by user chat ID)
+user_links = {}
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """Start the bot and ask if single or batch mode is needed."""
-    keyboard = [[KeyboardButton("Single File"), KeyboardButton("Batch Mode")]]
+    """Start the bot and ask if the user wants single or batch mode."""
+    keyboard = [[KeyboardButton("Single Link"), KeyboardButton("Batch Mode")]]
     reply_markup = ReplyKeyboardMarkup(keyboard, one_time_keyboard=True)
 
-    await update.message.reply_text("Do you want a single file link or batch mode?", reply_markup=reply_markup)
+    await update.message.reply_text("Do you want to store a single link or use batch mode?", reply_markup=reply_markup)
     return ASK_MODE
 
 async def ask_mode(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle user's choice of mode."""
     choice = update.message.text
 
-    if choice == "Single File":
-        await update.message.reply_text("Okay, please send the file.")
-        return ConversationHandler.END  # Move to normal file handling
+    if choice == "Single Link":
+        await update.message.reply_text("Okay, please send the link.")
+        return ConversationHandler.END  # Ends conversation, normal link handling will proceed
 
     elif choice == "Batch Mode":
-        user_files[update.message.chat_id] = []  # Initialize batch for this user
-        await update.message.reply_text("Batch mode activated. Send your files one by one. Type 'done' when finished.")
+        user_links[update.message.chat_id] = []  # Initialize a list for storing links
+        await update.message.reply_text("Batch mode activated. Send your links one by one. Type 'done' when finished.")
         return COLLECT_BATCH
 
-async def handle_single_file(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Handle single file upload."""
-    if update.message.document.mime_type == 'video/x-matroska':
-        file = await context.bot.get_file(update.message.document.file_id)
-        file_path = f"files/{update.message.document.file_name}"
+async def handle_single_link(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle single link submission."""
+    link = update.message.text
 
-        os.makedirs("files", exist_ok=True)
-        await file.download(file_path)
+    # Validate the link (basic validation, can be extended)
+    if not link.startswith("http"):
+        await update.message.reply_text("Please send a valid link.")
+        return
 
-        # Generate the link
-        file_link = f"{BASE_URL}/file/{update.message.document.file_name}"
-        await update.message.reply_text(f"Here is your link: {file_link}")
+    # Send confirmation to the user
+    await update.message.reply_text(f"Your link is stored: {link}")
 
-    else:
-        await update.message.reply_text("Please send an MKV file.")
-
-async def handle_batch_file(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """Collect files for batch mode."""
+async def handle_batch_link(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Collect multiple links for batch mode."""
     if update.message.text and update.message.text.lower() == 'done':
-        # Generate a batch link when user finishes
+        # Generate and send the batch of links when the user is finished
         chat_id = update.message.chat_id
-        files = user_files.get(chat_id, [])
+        links = user_links.get(chat_id, [])
 
-        if files:
-            # Create a batch link containing all files
-            file_links = [f"{BASE_URL}/file/{file_name}" for file_name in files]
-            batch_link = "\n".join(file_links)
-            await update.message.reply_text(f"Here are your batch files:\n{batch_link}")
+        if links:
+            batch_links = "\n".join(links)
+            await update.message.reply_text(f"Here are your batch links:\n{batch_links}")
         else:
-            await update.message.reply_text("No files were uploaded.")
+            await update.message.reply_text("No links were added.")
 
-        # Clear user's batch files
-        user_files.pop(chat_id, None)
+        # Clear the stored links for the user
+        user_links.pop(chat_id, None)
         return ConversationHandler.END
 
-    elif update.message.document and update.message.document.mime_type == 'video/x-matroska':
+    elif update.message.text.startswith("http"):
+        # Store the valid link in the user's batch
         chat_id = update.message.chat_id
-        file = await context.bot.get_file(update.message.document.file_id)
-        file_path = f"files/{update.message.document.file_name}"
-
-        os.makedirs("files", exist_ok=True)
-        await file.download(file_path)
-
-        # Store the file name in the user's batch
-        user_files[chat_id].append(update.message.document.file_name)
-        await update.message.reply_text("File added to batch. Send more or type 'done' when finished.")
+        user_links[chat_id].append(update.message.text)
+        await update.message.reply_text("Link added to batch. Send more or type 'done' when finished.")
 
     else:
-        await update.message.reply_text("Please send only MKV files or type 'done'.")
+        await update.message.reply_text("Please send a valid link or type 'done'.")
 
 def main() -> None:
     """Run the bot."""
-    app = ApplicationBuilder().token(BOT_TOKEN).build()
+    app = ApplicationBuilder().token(os.getenv("TELEGRAM_BOT_TOKEN")).build()
 
-    # Setup conversation handler for choosing mode and batch collection
+    # Setup conversation handler for mode selection and link collection
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler("start", start)],
         states={
             ASK_MODE: [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_mode)],
-            COLLECT_BATCH: [MessageHandler(filters.ALL & ~filters.COMMAND, handle_batch_file)],
+            COLLECT_BATCH: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_batch_link)],
         },
-        fallbacks=[],
+        fallbacks=[]
     )
 
-    # Add handlers to the app
+    # Add handlers to the application
     app.add_handler(conv_handler)
-    app.add_handler(MessageHandler(filters.Document.ALL, handle_single_file))  # For single file uploads
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_single_link))  # For single links
 
     app.run_polling()
 
