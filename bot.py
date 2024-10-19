@@ -12,12 +12,11 @@ from dotenv import load_dotenv
 load_dotenv()
 
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+BASE_URL = os.getenv("BASE_URL", "https://your-app-name.onrender.com")  # Update this URL
 
 # Verify the token is loaded correctly
 if not BOT_TOKEN:
     raise ValueError("TELEGRAM_BOT_TOKEN environment variable is not set!")
-
-BASE_URL = os.getenv("BASE_URL", "https://your-app-name.onrender.com")
 
 # Set up logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
@@ -42,13 +41,9 @@ def store_link(slug, link):
 # Initialize the database at startup
 init_db()
 
-# Define states for the conversation handler
-ASK_MODE, CUSTOMIZE_LINK = range(2)
-
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """Ask user if they want to customize the link."""
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Start command to store a link."""
     await update.message.reply_text("Please send the link to store.")
-    return ASK_MODE
 
 async def store_and_generate_link(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Store the link and generate a custom streaming/download link."""
@@ -64,6 +59,7 @@ async def store_and_generate_link(update: Update, context: ContextTypes.DEFAULT_
 
     # Create the streaming/download URL
     output_link = f"{BASE_URL}/link/{slug}"
+    logging.info(f"Generated link: {output_link}")  # Debugging
 
     # Send the generated link to the user
     await update.message.reply_text(
@@ -76,16 +72,9 @@ def main():
     """Start the Telegram bot."""
     app = ApplicationBuilder().token(BOT_TOKEN).build()
 
-    # Conversation handler to store and generate links
-    conv_handler = ConversationHandler(
-        entry_points=[CommandHandler("start", start)],
-        states={
-            ASK_MODE: [MessageHandler(filters.TEXT & ~filters.COMMAND, store_and_generate_link)],
-        },
-        fallbacks=[]
-    )
-
-    app.add_handler(conv_handler)
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, store_and_generate_link))
+    
     app.run_polling()
 
 if __name__ == '__main__':
