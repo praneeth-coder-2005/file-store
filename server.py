@@ -1,5 +1,6 @@
 from flask import Flask, render_template_string, abort
 import sqlite3
+import logging
 
 app = Flask(__name__)
 
@@ -10,7 +11,13 @@ def get_link_from_db(slug):
     c.execute("SELECT url FROM links WHERE id = ?", (slug,))
     result = c.fetchone()
     conn.close()
-    return result[0] if result else None
+    
+    if result:
+        logging.info(f"Link found for slug {slug}: {result[0]}")  # Debugging
+        return result[0]
+    else:
+        logging.warning(f"No link found for slug: {slug}")  # Debugging
+        return None
 
 # HTML Template with JW Player and Download Button
 HTML_TEMPLATE = """
