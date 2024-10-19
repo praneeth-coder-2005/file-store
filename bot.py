@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-BASE_URL = os.getenv("BASE_URL", "https://your-app-name.onrender.com")  # Update with your Render URL
+BASE_URL = os.getenv("BASE_URL", "https://your-app-name.onrender.com")  # Replace with your Render URL
 
 # Set up logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
@@ -69,7 +69,6 @@ async def handle_single_link(update: Update, context: ContextTypes.DEFAULT_TYPE)
     unique_id = str(uuid.uuid4())
     store_link(unique_id, link)
 
-    output_link = f"{BASE_URL}/link/{unique_id}
     # Provide the user with the unique output link
     output_link = f"{BASE_URL}/link/{unique_id}"
     await update.message.reply_text(f"Your link is stored! Access it here: {output_link}")
