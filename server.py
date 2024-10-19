@@ -1,4 +1,4 @@
-from flask import Flask, render_template_string, abort
+from flask import Flask, render_template_string, abort, send_file, request
 import sqlite3
 
 app = Flask(__name__)
@@ -10,7 +10,6 @@ def get_link_from_db(slug):
     c.execute("SELECT url FROM links WHERE id = ?", (slug,))
     result = c.fetchone()
     conn.close()
-
     return result[0] if result else None
 
 # HTML Template with JW Player and Download Button
