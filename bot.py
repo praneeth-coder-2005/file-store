@@ -6,8 +6,16 @@ from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import (
     ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes, ConversationHandler
 )
-from dotenv import load_dotenv
 
+
+# Fetch the token from the environment variable
+BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+
+# Verify the token is loaded
+if not BOT_TOKEN:
+    raise ValueError("TELEGRAM_BOT_TOKEN environment variable is not set!")
+
+print(f"Loaded Telegram Bot Token: {BOT_TOKEN[:5]}...")  # Debugging: Print part of the token
 # Load environment variables
 load_dotenv()
 
