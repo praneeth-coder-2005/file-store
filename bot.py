@@ -13,14 +13,14 @@ load_dotenv()
 
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 
-# Verify the token is loaded correctly
+# Verify that the token is loaded correctly
 if not BOT_TOKEN:
     raise ValueError("TELEGRAM_BOT_TOKEN environment variable is not set!")
 
 # Set up logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 
-# SQLite database setup
+# Initialize SQLite database
 def init_db():
     """Initialize the SQLite database."""
     conn = sqlite3.connect("links.db")
@@ -37,27 +37,27 @@ def store_link(unique_id, link):
     conn.commit()
     conn.close()
 
-# Initialize the database
+# Initialize the database at startup
 init_db()
 
-# Define states for the conversation handler
+# Define states for conversation handler
 ASK_MODE, COLLECT_BATCH = range(2)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """Ask the user if they want to store a single link or use batch mode."""
+    """Ask user if they want to store a single link or a batch."""
     keyboard = [[KeyboardButton("Single Link"), KeyboardButton("Batch Mode")]]
     reply_markup = ReplyKeyboardMarkup(keyboard, one_time_keyboard=True)
-    await update.message.reply_text("Do you want to store a single link or use batch mode?", reply_markup=reply_markup)
+    await update.message.reply_text("Do you want to store a single link or batch mode?", reply_markup=reply_markup)
     return ASK_MODE
 
 async def ask_mode(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """Handle the user's choice."""
+    """Handle user mode selection."""
     if update.message.text == "Single Link":
-        await update.message.reply_text("Okay, please send the link.")
-        return ConversationHandler.END  # Normal link handling will proceed
+        await update.message.reply_text("Please send the link.")
+        return ConversationHandler.END
 
     elif update.message.text == "Batch Mode":
-        context.user_data["links"] = []  # Store batch links in the session
+        context.user_data["links"] = []  # Initialize batch storage
         await update.message.reply_text("Batch mode activated. Send links one by one. Type 'done' when finished.")
         return COLLECT_BATCH
 
@@ -72,47 +72,42 @@ async def handle_single_link(update: Update, context: ContextTypes.DEFAULT_TYPE)
     unique_id = str(uuid.uuid4())
     store_link(unique_id, link)
 
-    await update.message.reply_text("Your link is stored successfully!")
+    await update.message.reply_text(f"Your link is stored with ID: {unique_id}")
 
 async def handle_batch_link(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """Handle links in batch mode."""
+    """Handle batch link submissions."""
     if update.message.text.lower() == 'done':
-        # Generate a unique ID for the batch of links
         unique_id = str(uuid.uuid4())
 
-        # Store each link in the SQLite database
+        # Store all links in the batch under the same ID
         for link in context.user_data["links"]:
             store_link(unique_id, link)
 
-        await update.message.reply_text("Your batch links are stored successfully!")
+        await update.message.reply_text(f"Batch stored with ID: {unique_id}")
         return ConversationHandler.END
 
     elif update.message.text.startswith("http"):
-        # Add the valid link to the user's session data
         context.user_data["links"].append(update.message.text)
-        await update.message.reply_text("Link added. Send more or type 'done' when finished.")
+        await update.message.reply_text("Link added. Send more or type 'done' to finish.")
 
     else:
         await update.message.reply_text("Please send a valid link or type 'done'.")
 
-def main() -> None:
-    """Run the Telegram bot."""
+def main():
+    """Start the Telegram bot."""
     app = ApplicationBuilder().token(BOT_TOKEN).build()
 
-    # Define the conversation handler for mode selection and link collection
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler("start", start)],
         states={
             ASK_MODE: [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_mode)],
             COLLECT_BATCH: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_batch_link)],
         },
-        fallbacks=[],
+        fallbacks=[]
     )
 
-    # Add handlers to the application
     app.add_handler(conv_handler)
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_single_link))  # Handle single links
-
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_single_link))
     app.run_polling()
 
 if __name__ == '__main__':
