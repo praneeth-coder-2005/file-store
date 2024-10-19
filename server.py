@@ -4,7 +4,7 @@ import sqlite3
 app = Flask(__name__)
 
 def get_link_from_db(slug):
-    """Fetch a link by slug from the SQLite database."""
+    """Retrieve the video link from the database."""
     conn = sqlite3.connect("links.db")
     c = conn.cursor()
     c.execute("SELECT url FROM links WHERE id = ?", (slug,))
@@ -13,7 +13,7 @@ def get_link_from_db(slug):
 
     return result[0] if result else None
 
-# Enhanced HTML Template with Styling, JW Player, and Download Button
+# HTML Template with JW Player and Download Button
 HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="en">
