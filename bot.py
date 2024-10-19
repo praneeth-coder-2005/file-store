@@ -5,7 +5,13 @@ from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import (
     ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes, ConversationHandler
 )
-from flask import Flask, jsonify
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
+BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+BASE_URL = os.getenv("BASE_URL", "https://your-app-name.onrender.com")  # Update with your Render URL
 
 # In-memory storage for user-submitted links
 stored_links = {}
@@ -29,20 +35,19 @@ async def ask_mode(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     chat_id = update.message.chat_id
     context.user_data["links"] = []  # Initialize list to store user links
 
-    choice = update.message.text
-    if choice == "Single Link":
+    if update.message.text == "Single Link":
         await update.message.reply_text("Okay, please send the link.")
-        return ConversationHandler.END  # Normal handling for single link
+        return ConversationHandler.END  # End conversation for single link
 
-    elif choice == "Batch Mode":
+    elif update.message.text == "Batch Mode":
         await update.message.reply_text("Batch mode activated. Send your links one by one. Type 'done' when finished.")
         return COLLECT_BATCH
 
 async def handle_single_link(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Handle a single link submission."""
+    """Handle single link submission."""
     link = update.message.text
 
-    # Validate link
+    # Validate the link
     if not link.startswith("http"):
         await update.message.reply_text("Please send a valid link.")
         return
@@ -52,7 +57,7 @@ async def handle_single_link(update: Update, context: ContextTypes.DEFAULT_TYPE)
     stored_links[unique_id] = [link]
 
     # Provide the user with a unique output link
-    output_link = f"{os.getenv('BASE_URL')}/link/{unique_id}"
+    output_link = f"{BASE_URL}/link/{unique_id}"
     await update.message.reply_text(f"Your link is stored! Access it here: {output_link}")
 
 async def handle_batch_link(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -63,7 +68,7 @@ async def handle_batch_link(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         stored_links[unique_id] = context.user_data["links"]
 
         # Provide the user with a unique output link
-        output_link = f"{os.getenv('BASE_URL')}/link/{unique_id}"
+        output_link = f"{BASE_URL}/link/{unique_id}"
         await update.message.reply_text(f"Your batch links are stored! Access them here: {output_link}")
 
         return ConversationHandler.END
@@ -72,13 +77,12 @@ async def handle_batch_link(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         # Store the valid link in the user's session data
         context.user_data["links"].append(update.message.text)
         await update.message.reply_text("Link added. Send more or type 'done' when finished.")
-
     else:
         await update.message.reply_text("Please send a valid link or type 'done'.")
 
 def main() -> None:
     """Run the bot."""
-    app = ApplicationBuilder().token(os.getenv("TELEGRAM_BOT_TOKEN")).build()
+    app = ApplicationBuilder().token(BOT_TOKEN).build()
 
     # Conversation handler for mode selection and link collection
     conv_handler = ConversationHandler(
@@ -90,6 +94,7 @@ def main() -> None:
         fallbacks=[],
     )
 
+    # Add handlers to the application
     app.add_handler(conv_handler)
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_single_link))  # Handle single links
 
