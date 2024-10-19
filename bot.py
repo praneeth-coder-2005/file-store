@@ -6,21 +6,18 @@ from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import (
     ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes, ConversationHandler
 )
+from dotenv import load_dotenv
 
-
-# Fetch the token from the environment variable
-BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-
-# Verify the token is loaded
-if not BOT_TOKEN:
-    raise ValueError("TELEGRAM_BOT_TOKEN environment variable is not set!")
-
-print(f"Loaded Telegram Bot Token: {BOT_TOKEN[:5]}...")  # Debugging: Print part of the token
 # Load environment variables
 load_dotenv()
 
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-BASE_URL = os.getenv("BASE_URL", "https://your-app-name.onrender.com")  # Replace with your Render URL
+
+# Verify the token is loaded correctly
+if not BOT_TOKEN:
+    raise ValueError("TELEGRAM_BOT_TOKEN environment variable is not set!")
+
+print(f"Loaded Telegram Bot Token: {BOT_TOKEN[:5]}...")  # Debugging to verify token
 
 # Set up logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
@@ -28,11 +25,13 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 # SQLite database setup
 def init_db():
     """Initialize the SQLite database."""
+    print("Initializing the SQLite database...")
     conn = sqlite3.connect("links.db")
     c = conn.cursor()
     c.execute("CREATE TABLE IF NOT EXISTS links (id TEXT PRIMARY KEY, url TEXT)")
     conn.commit()
     conn.close()
+    print("SQLite database initialized.")
 
 def store_link(unique_id, link):
     """Store a link in the SQLite database."""
@@ -78,6 +77,7 @@ async def handle_single_link(update: Update, context: ContextTypes.DEFAULT_TYPE)
     store_link(unique_id, link)
 
     # Provide the user with the unique output link
+    BASE_URL = os.getenv("BASE_URL", "https://your-app-name.onrender.com")
     output_link = f"{BASE_URL}/link/{unique_id}"
     await update.message.reply_text(f"Your link is stored! Access it here: {output_link}")
 
@@ -92,6 +92,7 @@ async def handle_batch_link(update: Update, context: ContextTypes.DEFAULT_TYPE) 
             store_link(unique_id, link)
 
         # Provide the user with a unique output link for the batch
+        BASE_URL = os.getenv("BASE_URL", "https://your-app-name.onrender.com")
         output_link = f"{BASE_URL}/link/{unique_id}"
         await update.message.reply_text(f"Your batch links are stored! Access them here: {output_link}")
 
