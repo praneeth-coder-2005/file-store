@@ -17,21 +17,17 @@ BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 if not BOT_TOKEN:
     raise ValueError("TELEGRAM_BOT_TOKEN environment variable is not set!")
 
-print(f"Loaded Telegram Bot Token: {BOT_TOKEN[:5]}...")  # Debugging to verify token
-
 # Set up logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 
 # SQLite database setup
 def init_db():
     """Initialize the SQLite database."""
-    print("Initializing the SQLite database...")
     conn = sqlite3.connect("links.db")
     c = conn.cursor()
     c.execute("CREATE TABLE IF NOT EXISTS links (id TEXT PRIMARY KEY, url TEXT)")
     conn.commit()
     conn.close()
-    print("SQLite database initialized.")
 
 def store_link(unique_id, link):
     """Store a link in the SQLite database."""
@@ -76,10 +72,7 @@ async def handle_single_link(update: Update, context: ContextTypes.DEFAULT_TYPE)
     unique_id = str(uuid.uuid4())
     store_link(unique_id, link)
 
-    # Provide the user with the unique output link
-    BASE_URL = os.getenv("BASE_URL", "https://your-app-name.onrender.com")
-    output_link = f"{BASE_URL}/link/{unique_id}"
-    await update.message.reply_text(f"Your link is stored! Access it here: {output_link}")
+    await update.message.reply_text("Your link is stored successfully!")
 
 async def handle_batch_link(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle links in batch mode."""
@@ -91,11 +84,7 @@ async def handle_batch_link(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         for link in context.user_data["links"]:
             store_link(unique_id, link)
 
-        # Provide the user with a unique output link for the batch
-        BASE_URL = os.getenv("BASE_URL", "https://your-app-name.onrender.com")
-        output_link = f"{BASE_URL}/link/{unique_id}"
-        await update.message.reply_text(f"Your batch links are stored! Access them here: {output_link}")
-
+        await update.message.reply_text("Your batch links are stored successfully!")
         return ConversationHandler.END
 
     elif update.message.text.startswith("http"):
