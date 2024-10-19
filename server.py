@@ -12,7 +12,7 @@ def get_link_from_db(slug):
     conn.close()
     return result[0] if result else None
 
-# HTML Template with Improved Design for JW Player and Download Button
+# Enhanced HTML Template with JW Player and Debugging Info
 HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="en">
@@ -20,7 +20,6 @@ HTML_TEMPLATE = """
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Stream & Download</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" integrity="sha512-Fo3rlrZj/kTcE+5tvb0tGdh8eABHxS2EPE0TPHzwGzMSM9vZbNpgK3KbgIg5tRT1Hp83KoDj2V7JQwZfyt2JHg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <style>
         body {
             font-family: 'Arial', sans-serif;
@@ -32,43 +31,35 @@ HTML_TEMPLATE = """
             margin: 0;
         }
         .container {
-            text-align: center;
             background-color: white;
             padding: 30px;
-            border-radius: 12px;
+            border-radius: 10px;
             box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
             width: 80%;
             max-width: 800px;
+            text-align: center;
         }
         h1 {
-            color: #333;
             margin-bottom: 20px;
+            color: #333;
         }
         #player {
             width: 100%;
             margin-bottom: 15px;
         }
-        .button-container {
-            margin-top: 20px;
-        }
         .download-button {
             background-color: #007bff;
             color: white;
-            padding: 12px 24px;
+            padding: 10px 20px;
+            border-radius: 5px;
             border: none;
-            border-radius: 8px;
-            font-size: 18px;
+            font-size: 16px;
             cursor: pointer;
             text-decoration: none;
-            display: inline-block;
-            margin-top: 10px;
-            transition: background-color 0.3s ease;
+            transition: background-color 0.3s;
         }
         .download-button:hover {
             background-color: #0056b3;
-        }
-        .download-button i {
-            margin-right: 10px;
         }
     </style>
     <script src="https://cdn.jwplayer.com/libraries/your-jwplayer-library-key.js"></script>
@@ -80,18 +71,22 @@ HTML_TEMPLATE = """
         <div id="player"></div>
 
         <script>
-            jwplayer("player").setup({
-                file: "{{ link }}",
-                width: "100%",
-                aspectratio: "16:9",
-                controls: true
-            });
+            // Check if the link is available before setting up JWPlayer
+            const videoLink = "{{ link }}";
+            if (videoLink) {
+                jwplayer("player").setup({
+                    file: videoLink,
+                    width: "100%",
+                    aspectratio: "16:9",
+                    controls: true
+                });
+            } else {
+                document.getElementById("player").innerHTML = "<p>Video not available.</p>";
+            }
         </script>
 
-        <div class="button-container">
-            <a href="{{ link }}" download class="download-button">
-                <i class="fas fa-download"></i> Download Video
-            </a>
+        <div>
+            <a href="{{ link }}" download class="download-button">Download Video</a>
         </div>
     </div>
 </body>
@@ -100,7 +95,7 @@ HTML_TEMPLATE = """
 
 @app.route('/link/<slug>', methods=['GET'])
 def access_link(slug):
-    """Serve the JW Player page with the streaming and download link."""
+    """Serve the JW Player page with streaming and download."""
     link = get_link_from_db(slug)
     if link:
         return render_template_string(HTML_TEMPLATE, link=link)
