@@ -1,4 +1,4 @@
-from flask import Flask, render_template_string, abort, send_file, request
+from flask import Flask, render_template_string, abort
 import sqlite3
 
 app = Flask(__name__)
@@ -12,7 +12,7 @@ def get_link_from_db(slug):
     conn.close()
     return result[0] if result else None
 
-# HTML Template with JW Player and Download Button
+# HTML Template with Improved Design for JW Player and Download Button
 HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="en">
@@ -20,10 +20,11 @@ HTML_TEMPLATE = """
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Stream & Download</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" integrity="sha512-Fo3rlrZj/kTcE+5tvb0tGdh8eABHxS2EPE0TPHzwGzMSM9vZbNpgK3KbgIg5tRT1Hp83KoDj2V7JQwZfyt2JHg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <style>
         body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
+            font-family: 'Arial', sans-serif;
+            background-color: #f0f2f5;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -33,35 +34,48 @@ HTML_TEMPLATE = """
         .container {
             text-align: center;
             background-color: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+            width: 80%;
+            max-width: 800px;
         }
         h1 {
             color: #333;
+            margin-bottom: 20px;
+        }
+        #player {
+            width: 100%;
+            margin-bottom: 15px;
         }
         .button-container {
-            margin-top: 15px;
+            margin-top: 20px;
         }
         .download-button {
             background-color: #007bff;
             color: white;
+            padding: 12px 24px;
             border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
-            font-size: 16px;
+            border-radius: 8px;
+            font-size: 18px;
             cursor: pointer;
             text-decoration: none;
+            display: inline-block;
+            margin-top: 10px;
+            transition: background-color 0.3s ease;
         }
         .download-button:hover {
             background-color: #0056b3;
+        }
+        .download-button i {
+            margin-right: 10px;
         }
     </style>
     <script src="https://cdn.jwplayer.com/libraries/your-jwplayer-library-key.js"></script>
 </head>
 <body>
     <div class="container">
-        <h1>Stream Your Video</h1>
+        <h1>Stream & Download Your Video</h1>
 
         <div id="player"></div>
 
@@ -69,12 +83,15 @@ HTML_TEMPLATE = """
             jwplayer("player").setup({
                 file: "{{ link }}",
                 width: "100%",
-                aspectratio: "16:9"
+                aspectratio: "16:9",
+                controls: true
             });
         </script>
 
         <div class="button-container">
-            <a href="{{ link }}" download class="download-button">Download</a>
+            <a href="{{ link }}" download class="download-button">
+                <i class="fas fa-download"></i> Download Video
+            </a>
         </div>
     </div>
 </body>
