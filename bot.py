@@ -7,8 +7,8 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-BOT_TOKEN = os.getenv("8088260771:AAFzLrBqd51JkEIv4zP4Fww23PDDpo__onw")
-BASE_URL = os.getenv("BASE_URL", "https://file-store.onrender.com")
+BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+BASE_URL = os.getenv("BASE_URL", "https://your-render-app-url.onrender.com")
 
 # Setup logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
